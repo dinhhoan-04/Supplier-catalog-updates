@@ -98,12 +98,40 @@ export default function App() {
     };
   }, [fetchStatusAndData]);
 
+  // Fallback Polling effect whenever job is RUNNING
+  useEffect(() => {
+    if (job?.status === 'RUNNING') {
+      const interval = setInterval(() => {
+        fetchStatusAndData();
+      }, 800);
+      return () => clearInterval(interval);
+    }
+  }, [job?.status, fetchStatusAndData]);
+
+  const pollUntilComplete = () => {
+    const timer = setInterval(async () => {
+      try {
+        const latest = await api.getSyncStatus();
+        if (latest && latest.id) {
+          setJob(latest);
+          if (latest.status !== 'RUNNING') {
+            clearInterval(timer);
+            fetchStatusAndData();
+          }
+        }
+      } catch (e) {
+        clearInterval(timer);
+      }
+    }, 600);
+  };
+
   const handleStartSync = async (scenario) => {
     setLoading(true);
     try {
       const res = await api.startSync(scenario);
       setJob(res);
       showNotification('Catalog update pipeline started', 'info');
+      pollUntilComplete();
     } catch (err) {
       showNotification(err.message, 'danger');
     } finally {
@@ -118,6 +146,7 @@ export default function App() {
       const res = await api.resumeSync(job.id);
       setJob(res);
       showNotification('Resuming update from last checkpoint...', 'warning');
+      pollUntilComplete();
     } catch (err) {
       showNotification(err.message, 'danger');
     } finally {
