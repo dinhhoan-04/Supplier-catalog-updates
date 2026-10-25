@@ -42,7 +42,7 @@ export default function SyncControl({ job, onStart, onResume, onInterrupt, loadi
               disabled={loading}
             >
               <Play size={16} fill="currentColor" />
-              {job?.status === 'COMPLETED' ? 'Run Sync Again (Test Idempotency)' : 'Start Update'}
+              Start Update
             </button>
           ) : (
             <button
